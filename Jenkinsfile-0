@@ -1,0 +1,116 @@
+pipeline {
+    agent {
+        docker { image 'ziedab/jenkins-cicd-toolbox' }
+    }
+
+    environment { 
+        IMG_NAME_FRONT_END = "ams-front-2024"
+        IMG_NAME_BACK_END = "ams-rest-2024"
+        // getting stored credentials
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub_cred')
+    } 
+   
+   tools {
+     maven 'maven398'
+     nodejs "nodejs2251"	 
+   }
+
+
+    stages { 
+        stage('Checkout Code') {
+            steps {
+                // Checkout code from GitHub repository
+                git url: 'https://github.com/abbassizied/ams_spring-angular.git', branch: 'main'
+            }
+        }
+        // ##################################################
+        // ### Test NodeJs
+        // ##################################################
+
+        stage('Test npm on Angular app') { 
+            steps {
+                sh 'npm install ./amsFront2024'
+            }
+        }
+
+        // ##################################################
+        // ### Test Maven
+        // ##################################################
+
+        stage('Test nvn on Spring Boot app') { 
+            steps {
+                sh 'mvn clean install ./amsRest2024'
+            }
+        }
+
+        // ##################################################
+        // ### Docker --- Front-end
+        // ##################################################	 
+
+        stage('Build Docker Image - Front') { 
+            steps {
+                container('cicd-toolbox') {
+                    sh 'docker build -t ${IMG_NAME_FRONT_END} ./amsFront2024'
+                    sh 'docker tag ${IMG_NAME_FRONT_END} ${DOCKERHUB_CREDENTIALS_USR}/${IMG_NAME_FRONT_END}'
+                    echo 'Docker image built successfully!'                  
+                }
+            }
+        }
+
+        stage('Push Image - Front') { 
+            steps {
+                container('cicd-toolbox') {
+                    echo 'Logon in to docker hub'
+                    sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin docker.io'
+                    echo 'Login Successfull'
+                    sh 'docker push ${DOCKERHUB_CREDENTIALS_USR}/${IMG_NAME_FRONT_END}'
+                    echo 'Docker pushed successfully!'
+                    sh 'docker logout'                    
+                }
+            }
+        }
+
+
+        // ##################################################
+        // ### Docker --- Back-end
+        // ##################################################	 
+
+        stage('Build Docker Image - Back') { 
+            steps {
+                container('cicd-toolbox') {
+                    sh 'docker build -t ${IMG_NAME_BACK_END} ./amsRest2024'
+                    sh 'docker tag ${IMG_NAME_BACK_END} ${DOCKERHUB_CREDENTIALS_USR}/${IMG_NAME_BACK_END}'
+                    echo 'Docker image built successfully!'                  
+                }
+            }
+        }
+
+        stage('Push Image - Back') { 
+            steps {
+                container('cicd-toolbox') {
+                    echo 'Logon in to docker hub'
+                    sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin docker.io'
+                    echo 'Login Successfull'
+                    sh 'docker push ${DOCKERHUB_CREDENTIALS_USR}/${IMG_NAME_BACK_END}'
+                    echo 'Docker pushed successfully!'
+                    sh 'docker logout'                    
+                }
+            }
+        }
+
+        // ##################################################
+        // ### k8s
+        // ##################################################	
+
+		/*
+        stage('Deploy to minikube using helm') {
+            steps {
+                container('cicd-toolbox') {
+                    // Execute Helm upgrade/install command
+                    sh 'helm upgrade --install ams -n ams ./helm3/amschart'                   
+                }
+            }
+        }
+		*/
+    }
+}
