@@ -1,0 +1,65 @@
+services:
+
+  jenkins:
+    image: ziedab/custom-jenkins-docker # jenkins/jenkins:lts-jdk17
+    restart: on-failure  # Restart on container failure
+    ports:
+      - 8080:8080  # Map host port 8080 to container port 8080 (Jenkins UI)
+      - 50000:50000  # Map host port 50000 to container port 50000 (Jenkins slave agent)
+    volumes:
+      - jenkins_home:/var/jenkins_home  # Persist data in jenkins_home volume
+      - /var/run/docker.sock:/var/run/docker.sock # this will give docker daemon inside your container possibility to communicate with docker socket in Docker Host, without this we won’t be able to run docker containers from inside a docker container.
+    networks:
+      - devops-network  # Optional, uncomment if using a network
+
+  nexus:
+    image: sonatype/nexus3:latest  # Consider specifying a version for reproducibility
+    container_name: nexus  # Set the container name to "nexus"
+    ports:
+      - "8081:8081"  # Map container port 8081 to host port 8081
+    volumes:
+      - nexus-data:/nexus-data  # Mount a volume named "nexus-data" to the container's "/nexus-data" directory
+    restart: unless-stopped  # Restart the container automatically unless manually stopped (optional)
+    networks:
+      - devops-network  # Optional, uncomment if using a network
+
+  sonarqube:
+    image: sonarqube:community
+    depends_on:
+      - db
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://db:5432/sonar
+      SONAR_JDBC_USERNAME: sonar
+      SONAR_JDBC_PASSWORD: sonar
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+    ports:
+      - "9000:9000"
+    networks:
+      - devops-network  # Optional, uncomment if using a network      
+      
+  db:
+    image: postgres:12
+    environment:
+      POSTGRES_USER: sonar
+      POSTGRES_PASSWORD: sonar
+    volumes:
+      - postgresql:/var/lib/postgresql
+      - postgresql_data:/var/lib/postgresql/data
+    networks:
+      - devops-network  # Optional, uncomment if using a network
+ 
+volumes:
+  jenkins_home:  # Create these volumes before starting the services (optional)
+  nexus-data:  # docker volume create jenkins_home; docker volume create nexus-data
+  sonarqube_data:          # contains data files, such as Elasticsearch indexes
+  sonarqube_extensions:    # will contain any plugins you install and the Oracle JDBC driver if necessary.
+  sonarqube_logs:          # contains SonarQube logs about access, web process, CE process, and Elasticsearch
+  postgresql:
+  postgresql_data:  
+  
+  
+networks:
+  devops-network:  # Define network type (e.g., bridge) if needed for communication
