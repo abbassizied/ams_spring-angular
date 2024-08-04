@@ -1,29 +1,25 @@
-/*  
-  Requires the Kubernetes plugin to be installed in Jenkins 
-  and Jenkins itself to be running within a Kubernetes cluster.
-*/
+def label = "worker-${UUID.randomUUID().toString()}"
 
-pipeline {
-    agent {
-        kubernetes {
-            yamlFile 'KubernetesPod.yaml'  // Load Pod configuration from a YAML file
-        }
-    }
-
-    environment { 
-        IMG_NAME_FRONT_END = "ams-front-2024"
-        IMG_NAME_BACK_END = "ams-rest-2024"
-        // getting stored credentials
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub_cred')
-    } 
-   
-   tools {
-     maven 'maven398'
-     nodejs "nodejs2251"	 
-   }
-
-
-    stages { 
+podTemplate(
+    label: label,
+    containers: [
+        containerTemplate(
+            name: 'cicd-toolbox',
+            image: 'ziedab/jenkins-cicd-toolbox',
+            command: 'cat',
+            ttyEnabled: true
+        )
+    ],
+    volumes: [
+        hostPathVolume(
+            mountPath: '/var/run/docker.sock',
+            hostPath: '/var/run/docker.sock'
+        )
+    ]
+) {
+    node(label) {
+        def myRepo = "test"
+        
         stage('Checkout Code') {
             steps {
                 // Checkout code from GitHub repository
@@ -104,7 +100,7 @@ pipeline {
                 }
             }
         }
-
+		
         // ##################################################
         // ### k8s
         // ##################################################	
@@ -118,6 +114,8 @@ pipeline {
                 }
             }
         }
-		*/
+		*/		
+		
+		
     }
 }
