@@ -6,6 +6,9 @@ metadata:
     role: cicd-toolbox
 spec:
   containers:
+    - name: jnlp
+      image: jenkins/inbound-agent:4.3-4
+      args: ['$(JENKINS_SECRET)', '$(JENKINS_NAME)']  
     - name: cicd-toolbox
       image: ziedab/jenkins-cicd-toolbox
       command:
