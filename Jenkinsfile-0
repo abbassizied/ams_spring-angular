@@ -1,7 +1,7 @@
 pipeline {
     agent {
-        docker {
-            image 'ziedab/jenkins-cicd-toolbox'
+        kubernetes {
+            yamlFile 'KubernetesPod.yaml'  // Load Pod configuration from a YAML file
         }
     }
 
