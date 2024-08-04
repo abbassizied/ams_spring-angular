@@ -1,0 +1,27 @@
+---
+ingress:
+  enabled: true
+  # Used to create an Ingress record.
+  hosts:
+    - name: sonarqube.local.k8s.com
+      # Different clouds or configurations might need /* as the default path
+      path: "/"
+      pathType: Prefix
+      # For additional control over serviceName and servicePort
+      # serviceName: someService
+      # servicePort: somePort
+  annotations:  
+    nginx.ingress.kubernetes.io/proxy-body-size: "64m"
+    # Set the ingressClassName on the ingress record
+    ingressClassName: nginx
+
+   resources:
+     limits:
+       cpu: 100m
+       memory: 128Mi
+     requests:
+       cpu: 100m
+       memory: 128Mi
+
+nodeSelector:
+  node-role.kubernetes.io/devops-node: devops-node
