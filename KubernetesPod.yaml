@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: jenkins-agent
+    role: cicd-toolbox
+spec:
+  containers:
+    - name: cicd-toolbox
+      image: ziedab/jenkins-cicd-toolbox
+      command:
+        - cat
+      tty: true
+      volumeMounts:
+        - name: docker-socket
+          mountPath: /var/run/docker.sock
+  volumes:
+    - name: docker-socket
+      hostPath:
+        path: /var/run/docker.sock
+        type: Socket
